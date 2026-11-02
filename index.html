@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>RYP – treningsplan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700;800&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EEF0F2; --surface:#FFFFFF; --ink:#16202A; --muted:#5B6672; --line:#D5DAE0;
+  --accent:#E8590C; --accent-ink:#FFFFFF; --steel:#2C6A86; --done:#2E7D4F; --soft:#FCE7DA;
+  color-scheme:light;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#12171D; --surface:#1B232C; --ink:#EDF1F5; --muted:#9AA6B2; --line:#2C3743;
+    --accent:#FF7A33; --accent-ink:#1A0E06; --steel:#6FB3D2; --done:#5CC18A; --soft:#3A2416;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#12171D; --surface:#1B232C; --ink:#EDF1F5; --muted:#9AA6B2; --line:#2C3743;
+  --accent:#FF7A33; --accent-ink:#1A0E06; --steel:#6FB3D2; --done:#5CC18A; --soft:#3A2416;
+  color-scheme:dark;
+}
+*,*::before,*::after{box-sizing:border-box}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;min-height:100%;background:var(--bg);color:var(--ink);
+  font-family:"Barlow",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:16px;line-height:1.45;
+  padding-bottom:84px}
+h1,h2,h3,.num{font-family:"Barlow Condensed","Arial Narrow",system-ui,sans-serif}
+button{font:inherit;color:inherit}
+a{color:var(--steel)}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);
+  padding:14px 18px 10px;border-bottom:1px solid var(--line)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.top h1{margin:0;font-size:28px;font-weight:800;letter-spacing:.2px;line-height:1.05}
+.top p{margin:2px 0 0;color:var(--muted);font-size:14px}
+
+main{max-width:640px;margin:0 auto;padding:14px 14px 24px}
+.view{display:none}.view.on{display:block}
+
+.weekstrip{display:flex;gap:6px;overflow-x:auto;padding:4px 2px 10px;scrollbar-width:none}
+.weekstrip::-webkit-scrollbar{display:none}
+.wk{flex:0 0 auto;min-width:46px;height:52px;border-radius:10px;border:1px solid var(--line);background:var(--surface);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer}
+.wk b{font-family:"Barlow Condensed",sans-serif;font-size:22px;line-height:1}
+.wk small{font-size:10px;color:var(--muted)}
+.wk.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.wk.on small{color:inherit;opacity:.75}
+.wk.rest b{opacity:.55}
+
+.seg{display:flex;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px;margin:6px 0 14px}
+.seg button{flex:1;border:0;background:transparent;padding:10px 0;border-radius:9px;font-weight:600;cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.panel h2{margin:0 0 4px;font-size:22px;font-weight:700}
+.sub{color:var(--muted);font-size:14px;margin:0 0 12px}
+
+/* interval timer – the one loud element */
+.run{background:var(--ink);color:var(--bg);border:0}
+.run .sub{color:inherit;opacity:.7}
+.phase{font-family:"Barlow Condensed",sans-serif;font-size:20px;font-weight:600;margin-top:6px}
+.clock{font-family:"Barlow Condensed",sans-serif;font-weight:800;font-size:92px;line-height:.95;letter-spacing:-1px;font-variant-numeric:tabular-nums}
+.speed{font-family:"Barlow Condensed",sans-serif;font-size:30px;font-weight:700;color:var(--accent)}
+.bar{height:8px;border-radius:4px;background:rgba(127,127,127,.35);overflow:hidden;margin:12px 0 4px}
+.bar i{display:block;height:100%;width:0;background:var(--accent)}
+.drags{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:14px 0 4px}
+.drag{border:1px solid rgba(127,127,127,.4);border-radius:10px;padding:8px 6px;text-align:center}
+.drag small{display:block;font-size:12px;opacity:.7}
+.drag b{font-family:"Barlow Condensed",sans-serif;font-size:24px}
+.drag.now{border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)}
+.drag.past{opacity:.45}
+.row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btn{border:0;border-radius:11px;padding:13px 18px;font-weight:600;cursor:pointer;background:var(--accent);color:var(--accent-ink);min-height:48px}
+.btn.ghost{background:transparent;border:1px solid currentColor;color:inherit}
+.btn.small{padding:8px 12px;min-height:38px;font-size:14px}
+.zones{display:flex;gap:16px;font-size:14px;margin-top:6px;opacity:.85}
+
+/* exercises */
+.ex{border-top:1px solid var(--line);padding:14px 0}
+.ex:first-of-type{border-top:0;padding-top:4px}
+.exhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.exhead h3{margin:0;font-size:22px;font-weight:700;line-height:1.1}
+.kg{font-family:"Barlow Condensed",sans-serif;font-size:30px;font-weight:800;white-space:nowrap}
+.kg small{font-size:16px;font-weight:600;color:var(--muted);margin-left:2px}
+.meta{color:var(--muted);font-size:14px;margin:2px 0 8px}
+.sets{display:flex;gap:8px;flex-wrap:wrap}
+.set{width:52px;height:52px;border-radius:50%;border:2px solid var(--line);background:transparent;cursor:pointer;
+  font-family:"Barlow Condensed",sans-serif;font-size:20px;font-weight:700}
+.set.ok{background:var(--done);border-color:var(--done);color:#fff}
+.set.drop{border-style:dashed;font-size:13px;width:auto;padding:0 14px;border-radius:26px}
+details{margin-top:8px}
+summary{cursor:pointer;color:var(--steel);font-weight:600;font-size:15px;list-style:none;display:inline-flex;gap:6px;align-items:center}
+summary::-webkit-details-marker{display:none}
+.how{font-size:15px;margin:8px 0 0;padding-left:0;list-style:none}
+.how li{margin:4px 0;padding-left:14px;position:relative}
+.how li::before{content:"";position:absolute;left:0;top:.65em;width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.vid{display:inline-flex;align-items:center;gap:8px;margin-top:10px;padding:10px 14px;border-radius:10px;background:var(--soft);
+  color:var(--ink);text-decoration:none;font-weight:600}
+.note{font-size:14px;color:var(--muted);margin-top:10px}
+.restbox{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:6;
+  background:var(--ink);color:var(--bg);border-radius:30px;padding:10px 18px;font-family:"Barlow Condensed",sans-serif;font-size:22px;font-weight:700;
+  display:none;align-items:center;gap:12px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.restbox.on{display:flex}
+.restbox button{border:0;background:transparent;color:inherit;font-size:15px;text-decoration:underline;cursor:pointer}
+
+/* setup form */
+.field{display:grid;grid-template-columns:1fr 128px;gap:10px;align-items:center;padding:8px 0;border-top:1px solid var(--line)}
+.field:first-of-type{border-top:0}
+.field label{font-weight:500}
+.field small{display:block;color:var(--muted);font-size:12.5px;font-weight:400}
+input,select{width:100%;font:inherit;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);text-align:right}
+select{text-align:left}
+.ok-msg{color:var(--done);font-weight:600;margin-left:8px}
+
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:7;background:var(--surface);border-top:1px solid var(--line);
+  display:flex;padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs button{flex:1;border:0;background:transparent;padding:12px 0 14px;font-weight:600;font-size:15px;color:var(--muted);cursor:pointer}
+nav.tabs button.on{color:var(--accent);box-shadow:inset 0 3px 0 var(--accent)}
+
+.overview{width:100%;border-collapse:collapse;font-size:14px}
+.tablewrap{overflow-x:auto}
+.overview th,.overview td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.overview th{color:var(--muted);font-weight:600}
+.overview tr.cur td{background:var(--soft)}
+@media (prefers-reduced-motion: reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1 id="title">Uke 1 · Økt A</h1>
+  <p id="subtitle">Grunnprogrammet</p>
+</header>
+
+<main>
+  <!-- ØKT -->
+  <section class="view on" id="v-okt">
+    <div class="weekstrip" id="weeks"></div>
+    <div class="seg" id="sessions"></div>
+    <div id="okt"></div>
+  </section>
+
+  <!-- PLAN -->
+  <section class="view" id="v-plan">
+    <div class="panel">
+      <h2>Hele planen</h2>
+      <p class="sub">Trykk på en uke for å åpne den.</p>
+      <div class="tablewrap"><table class="overview" id="overview"></table></div>
+    </div>
+  </section>
+
+  <!-- OPPSETT -->
+  <section class="view" id="v-setup">
+    <div class="panel">
+      <h2>Grunndata</h2>
+      <p class="sub">Samme tall som i Excel-arket. Lagres bare på denne telefonen.</p>
+      <div id="form-basic"></div>
+    </div>
+    <div class="panel">
+      <h2>10RM per øvelse (kg)</h2>
+      <p class="sub">Vekten du klarer nøyaktig 10 rolige reps med. Manualer: per manual. Feltet for fase 2 er valgfritt.</p>
+      <div id="form-rm"></div>
+    </div>
+    <div class="panel">
+      <button class="btn" id="save">Lagre oppsett</button><span class="ok-msg" id="saved" hidden>Lagret</span>
+      <p class="note">Prosentene av 10RM er estimater basert på vanlige styrketabeller, ikke Tech Nutritions originale kalkulator. Kjenn etter de første øktene og juster 10RM om vektene er for lette eller tunge.</p>
+      <div class="row"><button class="btn ghost small" id="reset">Nullstill avkrysninger</button></div>
+    </div>
+  </section>
+</main>
+
+<div class="restbox" id="restbox"><span id="restclock">1:00</span><span style="font-size:15px;font-family:Barlow,sans-serif;font-weight:500">pause</span><button id="reststop">Stopp</button></div>
+
+<nav class="tabs">
+  <button data-v="okt" class="on">Økt</button>
+  <button data-v="plan">Plan</button>
+  <button data-v="setup">Oppsett</button>
+</nav>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- program data (from the RYP booklet tables) ---------- */
+const EX = [
+  {id:"mage", name:"Mage", long:"Mage i apparat / sit-ups med vekt", q:"ab crunch machine proper form",
+   how:["Sitt godt inntil rygg- og skulderstøtten.","Rull overkroppen ned mot hoftene med magen – ikke dra med armene.","Kontrollert tilbake."]},
+  {id:"kneboy", name:"Knebøy", long:"Knebøy med stang", q:"barbell back squat proper form",
+   how:["Stanga øverst på ryggen, føtter i skulderbredde, tær litt ut.","Pust inn, stram magen, sett deg bakover til lårene er parallelle med gulvet.","Knærne følger tærne, vekten på hele foten. Rett rygg hele veien."]},
+  {id:"skra", name:"Skråbenk manualer", long:"Skråbenkpress med manualer (lav vinkel)", q:"low incline dumbbell press proper form",
+   how:["Benken nesten flat, bare litt skrå.","Press manualene opp og sammen til strake armer.","Senk kontrollert og dypt. Korsryggen mot benken."]},
+  {id:"roing", name:"Roing bredt grep", long:"Sittende kabelroing, bredt håndtak", q:"seated cable row wide grip proper form",
+   how:["Sitt med lett bøy i knærne og rett rygg.","Dra håndtaket mot hoftene med armene – ikke kast overkroppen bakover.","Slipp kontrollert tilbake til god strekk, uten å krumme korsryggen."]},
+  {id:"arnold", name:"Arnoldpress", long:"Arnoldpress sittende med ryggstøtte", q:"arnold press proper form",
+   how:["Start med håndflatene mot deg foran skuldrene.","Press over hodet mens du vrir håndflatene fremover.","Vri tilbake på vei ned. Start lett til bevegelsen sitter."]},
+  {id:"biceps", name:"Bicepscurl skråbenk", long:"Bicepscurl med manualer i skråbenk", q:"incline dumbbell curl proper form",
+   how:["Ryggen mot benken, armene henger rett ned.","Curl opp med håndflatene vridd utover.","Ikke løft albuene eller ta fart – senk rolig."]},
+  {id:"triceps", name:"Tricepspress manualer", long:"Tricepspress med manualer på skråbenk", q:"incline dumbbell overhead triceps extension proper form",
+   how:["Len deg mot skråbenken, armene strake over pannen.","Bøy bare i albuen og senk manualene bak hodet til god strekk.","Press opp igjen. Ikke strekk så langt at skuldrene verker."]}
+];
+const P = {
+  "Grunnprogrammet":{reps:[12,8,8,8,4,4],pct:[.92,1.03,1.06,1.09,1.17,1.20],ints:2,dropp:[0,0,0,0,0,0],
+    sets:[[3,3,2,2,2,2,2],[3,3,3,3,2,2,2],[3,3,3,3,2,2,2],[3,3,3,3,2,2,2],[3,3,3,3,3,2,2],[3,3,3,3,3,2,2]]},
+  "Ekstrem Muskelvekst":{reps:[12,8,8,8,4,4],pct:[.92,1.03,1.06,1.09,1.17,1.20],ints:1,dropp:[0,0,0,0,1,1],
+    sets:[[3,3,3,3,3,3,3],[3,4,4,4,4,3,3],[3,4,4,4,4,3,3],[3,4,4,4,4,3,3],[3,4,4,4,4,3,3],[3,4,4,4,4,3,3]]},
+  "Maksimal Forbrenning":{reps:[12,12,8,8,4,4],pct:[.92,.95,1.03,1.06,1.17,1.20],ints:3,dropp:[0,0,0,0,0,0],
+    sets:[[2,2,2,2,2,2,2],[2,2,2,2,2,2,2],[3,2,2,2,2,2,2],[3,2,2,2,2,2,2],[3,3,3,3,3,2,2],[3,3,3,3,3,2,2]]}
+};
+
+const DEFAULTS = {start:"2026-11-09",maxhr:180,speed:10,incline:5,stepPct:2,kgStep:2.5,
+  p1:"Grunnprogrammet",p2:"Grunnprogrammet",p2inc:5,dropShare:60,
+  rm:{mage:30,kneboy:80,skra:24,roing:60,arnold:14,biceps:12,triceps:12},
+  rm2:{mage:"",kneboy:"",skra:"",roing:"",arnold:"",biceps:"",triceps:""}};
+
+/* ---------- storage (per-viewer, guarded) ---------- */
+function load(k,f){try{const v=localStorage.getItem(k);return v?JSON.parse(v):f}catch(e){return f}}
+function save(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}
+let cfg = Object.assign({}, DEFAULTS, load("ryp-cfg",{}));
+cfg.rm = Object.assign({}, DEFAULTS.rm, cfg.rm||{});
+cfg.rm2 = Object.assign({}, DEFAULTS.rm2, cfg.rm2||{});
+let done = load("ryp-done",{});
+let state = load("ryp-state",{week:currentWeek(),sess:"A"});
+
+/* ---------- calculations (same logic as the Excel file) ---------- */
+function mround(x,s){return Math.round(x/s)*s}
+function weekInfo(w){
+  if(w===7) return {phase:"Hvileuke",prog:"Hvile",pw:0,ints:1,rest:true};
+  const p = w<=6 ? cfg.p1 : cfg.p2, pw = w<=6 ? w : w-7, d=P[p];
+  return {phase:w<=6?"Fase 1":"Fase 2",prog:p,pw,reps:d.reps[pw-1],pct:d.pct[pw-1],ints:d.ints,dropp:d.dropp[pw-1],sets:d.sets[pw-1],rest:false};
+}
+function intsBefore(w){let n=0;for(let i=1;i<w;i++)n+=weekInfo(i).ints;return n}
+function sessionHasRun(info,s){const n=info.ints;return s==="A"?n>=1:s==="B"?n>=3:n>=2}
+function sessionRunIndex(info,s){return s==="A"?1:s==="B"?2:(info.ints>=3?3:2)}
+function dragSpeeds(N){
+  const out=[];for(let i=0;i<4;i++){out.push(Math.round(cfg.speed*(1+cfg.stepPct/100*Math.floor((N-1+i)/4))*10)/10)}return out;
+}
+function base10RM(id,w){
+  const a=Number(cfg.rm[id])||0; if(w<=6) return a;
+  const b=cfg.rm2[id]; if(b!==""&&b!=null&&!isNaN(Number(b))&&Number(b)>0) return Number(b);
+  return a? mround(a*(1+cfg.p2inc/100),cfg.kgStep):0;
+}
+function fmtKg(x){return (Math.round(x*10)/10).toString().replace(".",",")}
+function fmtSpd(x){return x.toFixed(1).replace(".",",")}
+function zones(){return {lo:Math.round(.85*cfg.maxhr),hi:Math.round(.95*cfg.maxhr),pause:Math.round(.7*cfg.maxhr)}}
+function currentWeek(){
+  try{const s=new Date((load("ryp-cfg",{}).start||DEFAULTS.start)+"T00:00:00");const d=Math.floor((Date.now()-s)/864e5);
+    return Math.min(13,Math.max(1,Math.floor(d/7)+1))}catch(e){return 1}
+}
+function mondayOf(w){const s=new Date(cfg.start+"T00:00:00");s.setDate(s.getDate()+7*(w-1));return s}
+function fmtDate(d){return d.toLocaleDateString("nb-NO",{day:"numeric",month:"short"})}
+
+/* ---------- rendering ---------- */
+const $=s=>document.querySelector(s);
+function el(tag,attrs,html){const e=document.createElement(tag);if(attrs)for(const k in attrs)e.setAttribute(k,attrs[k]);if(html!=null)e.innerHTML=html;return e}
+
+function renderWeeks(){
+  const box=$("#weeks");box.innerHTML="";
+  for(let w=1;w<=13;w++){
+    const b=el("button",{class:"wk"+(w===state.week?" on":"")+(w===7?" rest":""),"aria-label":"Uke "+w},"<b>"+w+"</b><small>"+(w===7?"hvile":fmtDate(mondayOf(w)))+"</small>");
+    b.onclick=()=>{state.week=w;if(w===7)state.sess="A";persist();render()};
+    box.appendChild(b);
+  }
+  const on=box.querySelector(".on"); if(on) on.scrollIntoView({inline:"center",block:"nearest"});
+}
+function renderSessions(info){
+  const box=$("#sessions");box.innerHTML="";
+  (info.rest?["A"]:["A","B","C"]).forEach(s=>{
+    const b=el("button",{class:s===state.sess?"on":""},"Økt "+s+(sessionHasRun(info,s)?" + 4x4":""));
+    b.onclick=()=>{state.sess=s;persist();render()};box.appendChild(b);
+  });
+}
+function key(w,s,ex,i){return w+"-"+s+"-"+ex+"-"+i}
+
+function renderSession(){
+  const w=state.week, s=state.sess, info=weekInfo(w), box=$("#okt");
+  box.innerHTML="";
+  $("#title").textContent="Uke "+w+" · Økt "+s;
+  $("#subtitle").textContent=info.rest?"Hvileuke – bare én 4x4-økt":info.prog+" · "+info.reps+" reps · "+(info.reps===4?"eksplosivt løft":"rolig og kontrollert");
+
+  if(sessionHasRun(info,s)){
+    const N=intsBefore(w)+sessionRunIndex(info,s);
+    box.appendChild(buildRun(dragSpeeds(N)));
+  }
+  if(info.rest){
+    box.appendChild(el("div",{class:"panel"},"<h2>Hvileuke</h2><p class='sub' style='margin:0'>Ingen styrketrening. Kjør minst én 4x4 for å holde formen. Vil du teste 10RM på nytt før uke 8, legger du inn tallene under Oppsett.</p>"));
+    return;
+  }
+  const p=el("div",{class:"panel"});
+  p.appendChild(el("h2",null,"Styrke"));
+  p.appendChild(el("p",{class:"sub"},"Trykk på et sett når det er gjort – pausetimeren på 1 min starter av seg selv."));
+  EX.forEach((ex,j)=>{
+    const sets=info.sets[j], b=base10RM(ex.id,w), kg=b?mround(b*info.pct,cfg.kgStep):0;
+    const hasDrop=info.dropp&&j>0&&kg>0, dkg=hasDrop?mround(kg*cfg.dropShare/100,cfg.kgStep):0;
+    const d=el("div",{class:"ex"});
+    d.innerHTML="<div class='exhead'><h3>"+ex.name+"</h3><div class='kg'>"+(kg?fmtKg(kg)+"<small>kg</small>":"–")+"</div></div>"+
+      "<div class='meta'>"+sets+" × "+info.reps+(hasDrop?" · dropp på siste sett: "+fmtKg(dkg)+" kg, så mange reps du klarer (15–20 totalt)":"")+(j===0?" · deretter 4 min lette crunches":"")+"</div>";
+    const row=el("div",{class:"sets"});
+    for(let i=0;i<sets;i++){
+      const k=key(w,s,ex.id,i), btn=el("button",{class:"set"+(done[k]?" ok":""),"aria-pressed":done[k]?"true":"false","aria-label":"Sett "+(i+1)},String(i+1));
+      btn.onclick=()=>{done[k]=!done[k];if(!done[k])delete done[k];save("ryp-done",done);
+        btn.classList.toggle("ok",!!done[k]);btn.setAttribute("aria-pressed",done[k]?"true":"false");if(done[k])startRest()};
+      row.appendChild(btn);
+    }
+    if(hasDrop){const k=key(w,s,ex.id,"d"),btn=el("button",{class:"set drop"+(done[k]?" ok":"")},"Dropp");
+      btn.onclick=()=>{done[k]=!done[k];if(!done[k])delete done[k];save("ryp-done",done);btn.classList.toggle("ok",!!done[k])};row.appendChild(btn)}
+    d.appendChild(row);
+    const det=el("details");
+    det.innerHTML="<summary>Slik gjør du øvelsen</summary><ul class='how'>"+ex.how.map(h=>"<li>"+h+"</li>").join("")+"</ul>"+
+      "<a class='vid' target='_blank' rel='noopener' href='https://www.youtube.com/results?search_query="+encodeURIComponent(ex.q)+"'>▶ Se video av "+ex.name.toLowerCase()+"</a>";
+    d.appendChild(det);
+    p.appendChild(d);
+  });
+  box.appendChild(p);
+}
+
+/* ---------- 4x4 timer ---------- */
+let timer=null, wakeLock=null, audioCtx=null;
+function buildPlan(speeds){
+  const z=zones(), pl=[{t:"Oppvarming",m:6,spd:null,info:"Rolig, ca. "+z.pause+" puls"}];
+  for(let i=0;i<4;i++){
+    pl.push({t:"Drag "+(i+1),m:4,spd:speeds[i],drag:i,info:"Puls "+z.lo+"–"+z.hi});
+    pl.push({t:i<3?"Aktiv pause":"Nedjogg",m:3,spd:null,info:"Snakketempo, ca. "+z.pause});
+  }
+  return pl;
+}
+function buildRun(speeds){
+  const z=zones(), plan=buildPlan(speeds), total=plan.reduce((a,p)=>a+p.m,0);
+  const d=el("div",{class:"panel run"});
+  d.innerHTML="<h2>4x4 løping</h2><p class='sub'>"+total+" min · stigning "+cfg.incline+" % · drag "+z.lo+"–"+z.hi+" puls, pause "+z.pause+"</p>"+
+    "<div class='drags'>"+speeds.map((s,i)=>"<div class='drag' data-i='"+i+"'><small>Drag "+(i+1)+"</small><b>"+fmtSpd(s)+"</b></div>").join("")+"</div>"+
+    "<div class='phase' id='ph'>Klar til start</div><div class='clock num' id='clk'>"+fmtClock(total*60)+"</div>"+
+    "<div class='speed' id='spd'>km/t vises per drag</div><div class='bar'><i id='prog'></i></div>"+
+    "<div class='zones' id='phinfo'>Trykk start når du står på mølla.</div>"+
+    "<div class='row'><button class='btn' id='tgo'>Start</button><button class='btn ghost' id='tskip'>Neste del</button><button class='btn ghost' id='treset'>Nullstill</button></div>";
+  setTimeout(()=>wireRun(plan),0);
+  return d;
+}
+function fmtClock(sec){sec=Math.max(0,Math.ceil(sec));return Math.floor(sec/60)+":"+String(sec%60).padStart(2,"0")}
+function beep(n){
+  try{audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    for(let i=0;i<n;i++){const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.frequency.value=880;o.connect(g);g.connect(audioCtx.destination);
+      const t=audioCtx.currentTime+i*.25;g.gain.setValueAtTime(.25,t);g.gain.exponentialRampToValueAtTime(.001,t+.18);o.start(t);o.stop(t+.2)}}catch(e){}
+  try{navigator.vibrate&&navigator.vibrate(n>1?[200,100,200]:200)}catch(e){}
+}
+async function keepAwake(on){
+  try{ if(on&&"wakeLock" in navigator){wakeLock=await navigator.wakeLock.request("screen")} else if(!on&&wakeLock){await wakeLock.release();wakeLock=null} }catch(e){}
+}
+function wireRun(plan){
+  const go=$("#tgo"),skip=$("#tskip"),rs=$("#treset");if(!go)return;
+  let idx=0, remain=plan[0].m*60, running=false, last=0;
+  function show(){
+    const p=plan[idx]; $("#ph").textContent=p?p.t:"Ferdig – bra jobba";
+    $("#clk").textContent=fmtClock(p?remain:0);
+    $("#spd").textContent=p&&p.spd?fmtSpd(p.spd)+" km/t":(p?"Rolig fart":"");
+    $("#phinfo").textContent=p?p.info:"Husk protein innen 30 min.";
+    $("#prog").style.width=p?(100*(1-remain/(p.m*60)))+"%":"100%";
+    document.querySelectorAll(".drag").forEach(e=>{const i=+e.dataset.i;e.classList.toggle("now",p&&p.drag===i);
+      e.classList.toggle("past",plan.slice(0,idx).some(q=>q.drag===i))});
+  }
+  function tick(){
+    const now=performance.now();remain-=(now-last)/1000;last=now;
+    if(remain<=0){idx++;if(idx>=plan.length){stop();show();beep(3);return}remain=plan[idx].m*60;beep(plan[idx].drag!=null?2:1)}
+    show();
+  }
+  function start(){if(idx>=plan.length)return;running=true;last=performance.now();timer=setInterval(tick,250);go.textContent="Pause";keepAwake(true);beep(1)}
+  function stop(){running=false;clearInterval(timer);timer=null;go.textContent="Fortsett";keepAwake(false)}
+  go.onclick=()=>running?stop():start();
+  skip.onclick=()=>{if(idx<plan.length){idx++;if(idx<plan.length)remain=plan[idx].m*60;show()}};
+  rs.onclick=()=>{stop();idx=0;remain=plan[0].m*60;go.textContent="Start";show()};
+  show();
+}
+
+/* rest timer */
+let restT=null;
+function startRest(){
+  clearInterval(restT);let end=Date.now()+60000;$("#restbox").classList.add("on");
+  const upd=()=>{const s=(end-Date.now())/1000;$("#restclock").textContent=fmtClock(s);if(s<=0){clearInterval(restT);beep(2);$("#restbox").classList.remove("on")}};
+  upd();restT=setInterval(upd,250);
+}
+$("#reststop").onclick=()=>{clearInterval(restT);$("#restbox").classList.remove("on")};
+
+/* plan overview */
+function renderOverview(){
+  const t=$("#overview");let h="<tr><th>Uke</th><th>Fra</th><th>Program</th><th>Reps</th><th>4x4</th></tr>";
+  for(let w=1;w<=13;w++){const i=weekInfo(w);
+    h+="<tr data-w='"+w+"' class='"+(w===state.week?"cur":"")+"' style='cursor:pointer'><td><b>"+w+"</b></td><td>"+fmtDate(mondayOf(w))+"</td><td>"+(i.rest?"Hvileuke":i.prog)+"</td><td>"+(i.rest?"–":i.reps)+"</td><td>"+i.ints+"×</td></tr>"}
+  t.innerHTML=h;
+  t.querySelectorAll("tr[data-w]").forEach(r=>r.onclick=()=>{state.week=+r.dataset.w;state.sess="A";persist();show("okt");render()});
+}
+
+/* setup form */
+function renderSetup(){
+  const f=[
+    ["start","Startdato (mandag uke 1)","date",""],
+    ["maxhr","Makspuls","number","Test den – 220 minus alder er unøyaktig."],
+    ["speed","Startfart drag (km/t)","number","Fart du holder 4 min på 85–95 %."],
+    ["incline","Stigning (%)","number","Minst 5 %."],
+    ["stepPct","Fartsøkning per trinn (%)","number","2 % ett drag om gangen."],
+    ["kgStep","Minste vektsteg (kg)","number",""],
+    ["p1","Program uke 1–6","select",""],
+    ["p2","Program uke 8–13","select",""],
+    ["p2inc","Økning startvekt fase 2 (%)","number","Brukes hvis du ikke tester 10RM på nytt."]
+  ];
+  const fb=$("#form-basic");fb.innerHTML="";
+  f.forEach(([k,l,type,hint])=>{
+    const r=el("div",{class:"field"});
+    r.appendChild(el("label",{for:"f-"+k},l+(hint?"<small>"+hint+"</small>":"")));
+    let inp;
+    if(type==="select"){inp=el("select",{id:"f-"+k});Object.keys(P).forEach(p=>{const o=el("option",{value:p},p);if(cfg[k]===p)o.selected=true;inp.appendChild(o)})}
+    else{inp=el("input",{id:"f-"+k,type,inputmode:type==="number"?"decimal":"",step:"any"});inp.value=cfg[k]}
+    r.appendChild(inp);fb.appendChild(r);
+  });
+  const fr=$("#form-rm");fr.innerHTML="";
+  const hd=el("div",{class:"field"});hd.style.gridTemplateColumns="1fr 84px 84px";
+  hd.innerHTML="<span></span><small style='text-align:right;color:var(--muted)'>Fase 1</small><small style='text-align:right;color:var(--muted)'>Fase 2</small>";fr.appendChild(hd);
+  EX.forEach(ex=>{
+    const r=el("div",{class:"field"});r.style.gridTemplateColumns="1fr 84px 84px";
+    r.appendChild(el("label",{for:"rm-"+ex.id},ex.name));
+    const a=el("input",{id:"rm-"+ex.id,type:"number",inputmode:"decimal",step:"any"});a.value=cfg.rm[ex.id];
+    const b=el("input",{id:"rm2-"+ex.id,type:"number",inputmode:"decimal",step:"any",placeholder:"valgfri"});b.value=cfg.rm2[ex.id];
+    r.appendChild(a);r.appendChild(b);fr.appendChild(r);
+  });
+}
+$("#save").onclick=()=>{
+  ["start","p1","p2"].forEach(k=>cfg[k]=$("#f-"+k).value||cfg[k]);
+  ["maxhr","speed","incline","stepPct","kgStep","p2inc"].forEach(k=>{const v=parseFloat(String($("#f-"+k).value).replace(",","."));if(!isNaN(v)&&v>0)cfg[k]=v});
+  EX.forEach(ex=>{const a=parseFloat(String($("#rm-"+ex.id).value).replace(",","."));cfg.rm[ex.id]=isNaN(a)?0:a;
+    const b=String($("#rm2-"+ex.id).value).replace(",",".");cfg.rm2[ex.id]=b===""?"":parseFloat(b)});
+  save("ryp-cfg",cfg);const m=$("#saved");m.hidden=false;setTimeout(()=>m.hidden=true,1800);render();
+};
+$("#reset").onclick=()=>{if(confirm("Fjerne alle avkrysninger?")){done={};save("ryp-done",done);render()}};
+
+/* tabs */
+function show(v){document.querySelectorAll(".view").forEach(e=>e.classList.toggle("on",e.id==="v-"+v));
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.classList.toggle("on",b.dataset.v===v));
+  if(v==="setup"){$("#title").textContent="Oppsett";$("#subtitle").textContent="Grunndata for programmet"}
+  if(v==="plan"){$("#title").textContent="Plan";$("#subtitle").textContent="13 uker"}
+  if(v==="okt")renderSession();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>show(b.dataset.v));
+
+function persist(){save("ryp-state",state)}
+function render(){
+  if(timer){clearInterval(timer);timer=null;keepAwake(false)}
+  const info=weekInfo(state.week);
+  if(info.rest&&state.sess!=="A")state.sess="A";
+  renderWeeks();renderSessions(info);renderSession();renderOverview();
+}
+renderSetup();render();
+})();
+</script>
+</body>
+</html>
